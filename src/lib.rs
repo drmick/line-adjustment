@@ -1,5 +1,3 @@
-extern crate core;
-
 use std::cmp::{max, min};
 
 pub fn transform(input: &str, line_width: u32) -> String {
