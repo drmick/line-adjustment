@@ -1,81 +1,93 @@
 extern crate core;
 
-use std::cmp::max;
+use std::cmp::{max, min};
 
 pub fn transform(input: &str, line_width: u32) -> String {
-    const DELIMITER: &str = " ";
-    const NEW_LINE: &str = "\n";
     let line_width = line_width as usize;
 
     // Split input string by whitespace and simple formatting
-    let slices = input.split_whitespace().collect::<Vec<&str>>();
+    let words = input.split_whitespace().collect::<Vec<&str>>();
     let mut result_string = String::from("");
-    let mut row_words_length = 0;
-    let mut row_words = 0;
-    let mut row_start_index = 0;
+    let mut line_words_length = 0;
+    let mut line_words = 0;
+    let mut line_start_index = 0;
 
-    for (current_word_index, word) in slices.iter().enumerate() {
+    for (current_word_index, word) in words.iter().enumerate() {
         // Get next word length
-        let next_word_length = match slices.get(current_word_index + 1) {
+        let next_word_length = match words.get(current_word_index + 1) {
             Some(el) => el.len(),
             _ => 0,
         };
 
-        row_words_length += word.len();
+        line_words_length += word.len();
 
-        // Calc current row length with space between words
-        let current_row_size = row_words_length + row_words;
-        row_words += 1;
+        // Calc current line length with space between words
+        let current_line_size = line_words_length + line_words;
+        line_words += 1;
 
-        // If current row has space for current word
+        // If current line has space for current word
         // and doesn't have space for next word
         // or word is very wide
-        if (current_row_size <= line_width
-            && (current_row_size + next_word_length + 1 > line_width
+        if (current_line_size <= line_width
+            && (current_line_size + next_word_length + 1 > line_width
                 || next_word_length == 0))
             || word.len() > line_width
         {
-            // Select words for new row
-            let row = &slices[row_start_index..row_start_index + row_words];
+            // Select words for new line
+            let line = &words[line_start_index..line_start_index + line_words];
 
-            // Calc number of intervals between words (min = 1)
-            let row_words_except_one = max(row_words - 1, 1);
+            // Transform slice to string and add spaces
+            let line = transform_line(line, line_words_length, line_width);
+            result_string.push_str(&line);
 
-            // Calc spaces for every interval
-            let spaces = (line_width - row_words_length) / row_words_except_one;
-
-            // Calc number of intervals which has a extra space (from start of row)
-            let extra_spaces_amount =
-                (line_width - row_words_length) % row_words_except_one;
-
-            // Making result row string with spaces
-            for (j, word) in row.iter().enumerate() {
-                // Push word
-                result_string.push_str(word);
-
-                // If Only one word or word is not the last then push spaces after that word
-                if row.len() != j + 1 || row.len() == 1 {
-                    result_string.push_str(DELIMITER.repeat(spaces).as_str());
-                }
-
-                // If The interval should have a extra space then add it
-                if j < extra_spaces_amount {
-                    result_string.push_str(DELIMITER);
-                }
-            }
-
-            // Add new line symbol if row is not the last
-            if current_word_index != slices.len() - 1 {
-                result_string.push_str(NEW_LINE);
+            // Add new line symbol if line is not the last
+            if current_word_index != words.len() - 1 {
+                result_string.push('\n');
             }
 
             // Clear counters
-            row_words = 0;
-            row_start_index = current_word_index + 1;
-            row_words_length = 0;
+            line_words = 0;
+            line_start_index = current_word_index + 1;
+            line_words_length = 0;
         }
     }
     result_string
+}
+
+fn transform_line(
+    line: &[&str],
+    line_words_length: usize,
+    line_width: usize,
+) -> String {
+    // Calc number of intervals between words (min = 1)
+    let line_words_except_one = max(line.len() - 1, 1);
+    let mut result = String::from("");
+
+    // Calc the empty space in the line in which we will place spaces (considering very big words)
+    let free_space_in_line = line_width - min(line_words_length, line_width);
+
+    // Calc spaces for every interval
+    let spaces = free_space_in_line / line_words_except_one;
+
+    // Calc number of intervals which has a extra space (from start of line)
+    let extra_spaces_amount = free_space_in_line % line_words_except_one;
+
+    // Making result line string with spaces
+    for (i, word) in line.iter().enumerate() {
+        // Push word
+        result.push_str(word);
+
+        // If Only one word or word is not the last then push spaces after that word
+        if line.len() != i + 1 || line.len() == 1 {
+            result.push_str(" ".repeat(spaces).as_str());
+        }
+
+        // If The interval should have a extra space then add it
+        if i < extra_spaces_amount {
+            result.push(' ');
+        }
+    }
+    result
 }
 
 #[cfg(test)]
